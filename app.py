@@ -284,12 +284,30 @@ def gather(side, kw, topic, key, depth):
     return found, errors
 
 
+def show_fallback_links(kw, topic):
+    from urllib.parse import quote_plus
+    trusted = "(site:gov OR site:edu OR site:rand.org OR site:brookings.edu OR site:cfr.org OR site:csis.org)"
+    cols = st.columns(2)
+    for col, side, words in [
+        (cols[0], "Pro", "benefits advantages support"),
+        (cols[1], "Con", "harms risks disadvantages criticism"),
+    ]:
+        q = " ".join(f"{kw} {topic} {words}".split())
+        with col:
+            st.markdown(f"### {side_label(side)}")
+            st.markdown(f"- [Google Scholar (studies)](https://scholar.google.com/scholar?q={quote_plus(q)})")
+            st.markdown(f"- [Government, university and think-tank sites](https://www.google.com/search?q={quote_plus(q + ' ' + trusted)})")
+            st.markdown(f"- [Recent news](https://www.google.com/search?q={quote_plus(q)}&tbm=nws)")
 st.markdown("---")
 st.subheader("Find evidence online")
 api_key = get_api_key()
 
 if not api_key:
-    st.info("Add your TAVILY_API_KEY to turn on live evidence search.")
+    st.info("Live search is unavailable right now. Use these search links instead.")
+    show_fallback_links(
+        query,
+        "" if format_choice == CONG else info["options"][0].replace("Resolved:", "").strip().rstrip("."),
+    )
 else:
     topic_text = info["options"][0]
     if len(info["options"]) > 1:
@@ -331,4 +349,7 @@ else:
                         st.markdown(f"**[{r['title']}]({r['url']})**")
                         st.caption(f"{r['angle']}  |  {urlparse(r['url']).netloc}  |  {tag}")
                         st.write(r["content"])
+        if (pro_err or con_err) and not (pro_found or con_found):
+            st.warning("Live search failed, so here are search links instead.")
+            show_fallback_links(query, topic_core)
         st.caption("Excerpts only. Open each link and verify the quote before using it as a card.")
